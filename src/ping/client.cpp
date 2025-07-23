@@ -110,6 +110,8 @@ bool PingClient::receive_ping_reply(int sequence, double &delay_ms, const struct
     struct icmphdr *icmp_reply = (struct icmphdr *)(recv_buf + (ip_reply->ip_hl * 4));
 
     // Verify if it's ICMP Echo Reply
+    // printf("%d\n", ntohs(icmp_reply->un.echo.sequence));
+    // printf("%d\n", sequence);
     if (icmp_reply->type == ICMP_ECHOREPLY && ntohs(icmp_reply->un.echo.sequence) == sequence)
     {
         stats_.increment_received();
@@ -175,6 +177,7 @@ void PingClient::run()
         if (send_ping_packet(i))
         {
             double delay_ms;
+            usleep(100); // Wait for 1 microsecond
             receive_ping_reply(i, delay_ms, send_time);
         }
 
