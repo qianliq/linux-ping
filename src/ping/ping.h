@@ -1,7 +1,7 @@
 /*
  * ping.h
  * This file is major part of the Ping project.
- * Object-oriented implementation of the Ping class, see ping/***.cpp
+ * Object-oriented implementation of the Ping class, see ping/client.cpp etc.
  *
  * WARNING: the code base on the system automatically add the IP header
  * and using the raw socket, so the code here is only for the ICMP header.
@@ -13,6 +13,7 @@
 #include <iostream>
 #include <string>
 #include <cstring>
+#include <limits>
 #include <unistd.h>
 #include <arpa/inet.h>
 #include <sys/socket.h>
@@ -136,6 +137,6 @@ public:
 
     static bool parse_arguments(int argc, char *argv[], std::string &target_ip, int &count, int &interval);
     static void print_usage(const char *prog_name);
-}
+};
 
 #endif // PING_H

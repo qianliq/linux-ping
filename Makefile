@@ -44,3 +44,4 @@ clean:
 	rm -f $(TARGET) $(OBJECTS)
 
 fmt:
+	clang-format -i $(SOURCES) $(PING_SRC_DIR)/ping.h

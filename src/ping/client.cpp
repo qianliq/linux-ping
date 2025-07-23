@@ -190,7 +190,7 @@ void PingClient::run()
     // No need to stop the PingClient, the stop method is just for the print_statisticsand it's already called
 }
 
-static bool PingClinet::parse_arguments(int argc, char *argv[], std::string &target_ip, int &count, int &interval)
+bool PingClient::parse_arguments(int argc, char *argv[], std::string &target_ip, int &count, int &interval)
 {
     // Default values
     count = 4;    // Default to 4 packets
@@ -225,7 +225,7 @@ static bool PingClinet::parse_arguments(int argc, char *argv[], std::string &tar
     return true;
 }
 
-static void PingClient::print_usage(const char *prog_name)
+void PingClient::print_usage(const char *prog_name)
 {
     printf("Usage: %s [OPTIONS] DESTINATION\n", prog_name);
     printf("Send ICMP ECHO_REQUEST packets to network hosts.\n\n");

@@ -27,7 +27,7 @@ ICMPPacket::ICMPPacket(int sequence, int process_id)
 // Calculate checksum for the ICMP packet
 // ref:
 // https://blog.csdn.net/qq_37174526/article/details/88407884
-ICMPPacket::calculate_checksum()
+void ICMPPacket::calculate_checksum()
 {
     header.checksum = 0; // Reset checksum before calculation
 
