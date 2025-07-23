@@ -37,54 +37,63 @@ void signal_handler(int signum)
 }
 
 /*
-* ICMP packet structure
-* This structure represents an ICMP packet with a header and data.
-* It includes methods for calculating the checksum and getting the total size.
-* 
-* parameters:
-* - sequence: the sequence number of the ICMP packet
-* - process_id: the process ID of the ping client
-*/
-struct ICMPPacket {
+ * ICMP packet structure
+ * This structure represents an ICMP packet with a header and data.
+ * It includes methods for calculating the checksum and getting the total size.
+ *
+ * parameters:
+ * - sequence: the sequence number of the ICMP packet
+ * - process_id: the process ID of the ping client
+ */
+struct ICMPPacket
+{
     struct icmphdr header;
     char data[56];
-    
+
     ICMPPacket(int sequence, int process_id);
     void calculate_checksum();
     size_t total_size() const { return sizeof(header) + sizeof(data); }
 };
 
 /*
-* ping statistics class
-* This class is used to keep track of the ping statistics.
-* It records the number of packets sent, received, lost etc.
-* When the pinging is done(end or Ctrl+C), it prints the statistics.
-*/
-class PingStatistics {
+ * ping statistics class
+ * This class is used to keep track of the ping statistics.
+ * It records the number of packets sent, received and response times.
+ * When the pinging is done(end or Ctrl+C), it prints the statistics.
+ */
+class PingStatistics
+{
 private:
     int packets_sent_;
     int packets_received_;
     double total_time_;
     double min_time_;
     double max_time_;
-    
+
 public:
     PingStatistics();
-    
+
+    // Update statistics
     void add_response_time(double time_ms);
     void increment_sent() { packets_sent_++; }
     void increment_received() { packets_received_++; }
-    
-    // Getters
+
+    // Get statistics
     int packets_sent() const { return packets_sent_; }
     int packets_received() const { return packets_received_; }
     int packets_lost() const { return packets_sent_ - packets_received_; }
-    double loss_rate() const;
-    double average_time() const;
+    double loss_rate() const
+    {
+        return (packets_sent_ > 0) ? (static_cast<double>(packets_lost()) / packets_sent_) * 100.0 : 0.0;
+    };
+    double average_time() const
+    {
+        return (packets_received_ > 0) ? total_time_ / packets_received_ : 0.0;
+    };
     double min_time() const { return min_time_; }
     double max_time() const { return max_time_; }
-    
-    void print_statistics(const std::string& target_ip) const;
+
+    void print_statistics(const std::string &target_ip) const;
 };
 
 /*
