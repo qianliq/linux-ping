@@ -28,6 +28,7 @@ class PingClient;
 extern PingClient *g_ping_instance;
 
 // Ctrl+C then stop pinging
+// touching the PingClient stop method
 void signal_handler(int signum)
 {
     if (signum == SIGINT && g_ping_instance)
@@ -107,21 +108,20 @@ public:
 class PingClient
 {
 private:
-    std::string target_ip_;
-    struct sockaddr_in dest_addr_;
+    std::string target_ip_;        // string for target IP address
+    struct sockaddr_in dest_addr_; // sockaddr_in structure for destination address
 
-    int socket_fd_;
-    int count_;
-    int interval_;
-    bool running_;
+    int process_id_; // Process ID for the ICMP header
+    int socket_fd_;  // Socket file descriptor for raw socket
+    int count_;      // number of packets to send
+    int interval_;   // interval between packets in milliseconds
+    bool running_;   // flag to indicate if pinging is running
 
     PingStatistics stats_;
 
-    // Private methods
     bool create_socket();
     bool setup_target_address();
     void close_socket();
-    unsigned short calculate_checksum(void *data, size_t len);
     double calculate_time_diff(const struct timeval &start, const struct timeval &end);
     bool send_ping_packet(int sequence);
     bool receive_ping_reply(int sequence, double &delay_ms, const struct timeval &send_time);
@@ -136,9 +136,6 @@ public:
 
     static bool parse_arguments(int argc, char *argv[], std::string &target_ip, int &count, int &interval);
     static void print_usage(const char *prog_name);
-
-    // Getters
-    const std::string &target_ip() const { return target_ip_; }
 }
 
 #endif // PING_H
