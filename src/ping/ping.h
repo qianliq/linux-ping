@@ -24,20 +24,6 @@
 #include <signal.h>
 #include <cstdlib>
 
-// handling ping instance for signal handling
-class PingClient;
-extern PingClient *g_ping_instance;
-
-// Ctrl+C then stop pinging
-// touching the PingClient stop method
-void signal_handler(int signum)
-{
-    if (signum == SIGINT && g_ping_instance)
-    {
-        g_ping_instance->stop();
-    }
-}
-
 /*
  * ICMP packet structure
  * This structure represents an ICMP packet with a header and data.

@@ -8,6 +8,17 @@
 
 #include "ping/ping.h"
 
+// Ctrl+C then stop pinging
+// touching the PingClient stop method
+void signal_handler(int signum)
+{
+    if (signum == SIGINT && g_ping_instance)
+    {
+        PingClient *g_ping_instance;
+        g_ping_instance->stop();
+    }
+}
+
 int main(int argc, char *argv[])
 {
     // configuration variables are not save until create the ping client
@@ -15,7 +26,8 @@ int main(int argc, char *argv[])
     int count, interval;
 
     // Parse command line arguments
-    if (!PingClient::parse_arguments(argc, argv, target_ip, count, interval)) {
+    if (!PingClient::parse_arguments(argc, argv, target_ip, count, interval))
+    {
         return 1;
     }
 
@@ -23,9 +35,13 @@ int main(int argc, char *argv[])
     PingClient ping_client(target_ip, count, interval);
 
     // Initialize and run
-    if (!ping_client.initialize()) {
+    if (!ping_client.initialize())
+    {
         return 1;
     }
+
+    // Register signal handler for Ctrl+C
+    signal(SIGINT, signal_handler);
 
     ping_client.run();
 
