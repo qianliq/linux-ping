@@ -15,8 +15,10 @@ ICMPPacket::ICMPPacket(int sequence, int process_id)
     header.un.echo.id = htons(process_id & 0xFFFF); // mark the packet with process ID
     header.un.echo.sequence = htons(sequence);
 
-    // Fill data with 'A'
-    memset(data, 'A', sizeof(data));
+    // Fill data with current timestamp
+    struct timeval tv;
+    gettimeofday(&tv, NULL);
+    snprintf(data, sizeof(data), "Timestamp: %ld.%06ld", tv.tv_sec, tv.tv_usec);
 
     // Calculate checksum
     calculate_checksum();
