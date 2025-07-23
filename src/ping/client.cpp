@@ -57,7 +57,7 @@ void PingClient::close_socket()
     }
 }
 
-double calculate_time_diff(const struct timeval &start, const struct timeval &end)
+double PingClient::calculate_time_diff(const struct timeval &start, const struct timeval &end)
 {
     return (end.tv_sec - start.tv_sec) * 1000.0 + (end.tv_usec - start.tv_usec) / 1000.0;
 }

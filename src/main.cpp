@@ -10,11 +10,11 @@
 
 // Ctrl+C then stop pinging
 // touching the PingClient stop method
+PingClient *g_ping_instance = nullptr;
 void signal_handler(int signum)
 {
     if (signum == SIGINT && g_ping_instance)
     {
-        PingClient *g_ping_instance;
         g_ping_instance->stop();
     }
 }
@@ -33,6 +33,7 @@ int main(int argc, char *argv[])
 
     // Create ping client
     PingClient ping_client(target_ip, count, interval);
+    g_ping_instance = &ping_client; // Set global instance for signal handling
 
     // Initialize and run
     if (!ping_client.initialize())
