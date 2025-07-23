@@ -1,8 +1,7 @@
 /*
  * ping.h
  * This file is major part of the Ping project.
- * Object-oriented implementation of the Ping class.
- * for the ping configuration, see ping.h
+ * Object-oriented implementation of the Ping class, see ping/***.cpp
  *
  * WARNING: the code base on the system automatically add the IP header
  * and using the raw socket, so the code here is only for the ICMP header.
