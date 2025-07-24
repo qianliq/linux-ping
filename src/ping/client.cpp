@@ -81,7 +81,7 @@ bool PingClient::send_ping_packet(int sequence)
     return true;
 }
 
-bool PingClient::receive_ping_reply(int sequence, double &delay_ms, const struct timeval &send_time)
+bool PingClient::receive_ping_reply(int sequence, double &delay_ms)
 {
     char recv_buf[1024];
     struct sockaddr_in recv_addr;
@@ -100,19 +100,40 @@ bool PingClient::receive_ping_reply(int sequence, double &delay_ms, const struct
 
     // Record time immediately after receiving reply
     struct timeval end_time;
+    struct timeval send_time;
     gettimeofday(&end_time, NULL);
-
-    // Calculate delay
-    delay_ms = calculate_time_diff(send_time, end_time);
 
     // Parse received packet
     struct ip *ip_reply = (struct ip *)recv_buf;
     struct icmphdr *icmp_reply = (struct icmphdr *)(recv_buf + (ip_reply->ip_hl * 4));
 
+    // Extract send time from received packet data
+    // ICMP data starts after ICMP header
+    char *icmp_data_ = (char *)icmp_reply + sizeof(struct icmphdr);
+    long sec = 0, usec = 0;
+    if (sscanf(icmp_data_, "Timestamp: %ld.%06ld", &sec, &usec) == 2)
+    {
+        send_time.tv_sec = sec;
+        send_time.tv_usec = usec;
+    }
+    else
+    {
+        // Fallback: set send_time to end_time if parsing fails
+        send_time = end_time;
+    }
+
+    // Calculate delay
+    delay_ms = calculate_time_diff(send_time, end_time);
+
+    // debug:
+    // printf("send_time: %ld.%06ld\n", send_time.tv_sec, send_time.tv_usec);
+    // printf("end_time: %ld.%06ld\n", end_time.tv_sec, end_time.tv_usec);
+
+
     // Verify if it's ICMP Echo Reply
     // printf("%d\n", ntohs(icmp_reply->un.echo.sequence));
     // printf("%d\n", sequence);
-    if (icmp_reply->type == ICMP_ECHOREPLY ) // && ntohs(icmp_reply->un.echo.sequence) == sequence)
+    if (icmp_reply->type == ICMP_ECHOREPLY) // && ntohs(icmp_reply->un.echo.sequence) == sequence)
     {
         stats_.increment_received();
         stats_.add_response_time(delay_ms);
@@ -178,7 +199,7 @@ void PingClient::run()
         {
             double delay_ms;
             // usleep(100); // Wait for 1 microsecond
-            receive_ping_reply(i, delay_ms, send_time);
+            receive_ping_reply(i, delay_ms);
         }
 
         // Wait for interval time

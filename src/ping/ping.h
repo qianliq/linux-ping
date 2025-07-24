@@ -111,7 +111,7 @@ private:
     void close_socket();
     double calculate_time_diff(const struct timeval &start, const struct timeval &end);
     bool send_ping_packet(int sequence);
-    bool receive_ping_reply(int sequence, double &delay_ms, const struct timeval &send_time);
+    bool receive_ping_reply(int sequence, double &delay_ms);
 
 public:
     PingClient(const std::string &target_ip, int count, int interval);
