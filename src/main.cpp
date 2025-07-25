@@ -24,15 +24,16 @@ int main(int argc, char *argv[])
     // configuration variables are not save until create the ping client
     std::string target_ip;
     int count, interval;
+    double timeout_ms;
 
     // Parse command line arguments
-    if (!PingClient::parse_arguments(argc, argv, target_ip, count, interval))
+    if (!PingClient::parse_arguments(argc, argv, target_ip, count, interval, timeout_ms))
     {
         return 1;
     }
 
     // Create ping client
-    PingClient ping_client(target_ip, count, interval);
+    PingClient ping_client(target_ip, count, interval, timeout_ms);
     g_ping_instance = &ping_client; // Set global instance for signal handling
 
     // Initialize and run

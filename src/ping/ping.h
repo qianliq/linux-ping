@@ -23,7 +23,9 @@
 #include <getopt.h>
 #include <signal.h>
 #include <cstdlib>
-
+#include <fcntl.h>
+#include <errno.h>
+#include <stdio.h>
 /*
  * ICMP packet structure
  * This structure represents an ICMP packet with a header and data.
@@ -102,6 +104,7 @@ private:
     int socket_fd_;  // Socket file descriptor for raw socket
     int count_;      // number of packets to send
     int interval_;   // interval between packets in milliseconds
+    double timeout_ms_; // timeout for receiving reply in milliseconds
     bool running_;   // flag to indicate if pinging is running
 
     PingStatistics stats_;
@@ -111,17 +114,18 @@ private:
     void close_socket();
     double calculate_time_diff(const struct timeval &start, const struct timeval &end);
     bool send_ping_packet(int sequence);
-    bool receive_ping_reply(int sequence, double &delay_ms);
+    bool receive_ping_reply(int sequence);
+    bool drop_ping_reply();
 
 public:
-    PingClient(const std::string &target_ip, int count, int interval);
+    PingClient(const std::string &target_ip, int count, int interval, double timeout_ms);
     ~PingClient();
 
     bool initialize();
     void run();
     void stop() { running_ = false; }
 
-    static bool parse_arguments(int argc, char *argv[], std::string &target_ip, int &count, int &interval);
+    static bool parse_arguments(int argc, char *argv[], std::string &target_ip, int &count, int &interval, double &timeout_ms);
     static void print_usage(const char *prog_name);
 };
 

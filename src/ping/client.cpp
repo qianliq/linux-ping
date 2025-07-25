@@ -7,9 +7,9 @@
 
 // init
 // only init the data
-PingClient::PingClient(const std::string &target_ip, int count, int interval)
+PingClient::PingClient(const std::string &target_ip, int count, int interval, double timeout_ms)
     : target_ip_(target_ip), process_id_(getpid()), socket_fd_(-1), count_(count),
-      interval_(interval), running_(false)
+      interval_(interval), timeout_ms_(timeout_ms), running_(false)
 {
     memset(&dest_addr_, 0, sizeof(dest_addr_));
 }
@@ -81,19 +81,37 @@ bool PingClient::send_ping_packet(int sequence)
     return true;
 }
 
-bool PingClient::receive_ping_reply(int sequence, double &delay_ms)
+bool PingClient::receive_ping_reply(int sequence)
 {
     char recv_buf[1024];
     struct sockaddr_in recv_addr;
     socklen_t addr_len = sizeof(recv_addr);
 
-    // Receive the reply
-    // Blocking call, will wait for a reply
-    ssize_t bytes_received = recvfrom(socket_fd_, recv_buf, sizeof(recv_buf), 0,
-                                      (struct sockaddr *)&recv_addr, &addr_len);
+    // busy waiting for the reply
+    ssize_t bytes_received = 0;
+    for (int i = 0; i < timeout_ms_ * 10; ++i) // before timeout
+    {
+        bytes_received = recvfrom(socket_fd_, recv_buf, sizeof(recv_buf), MSG_DONTWAIT,
+                                          (struct sockaddr *)&recv_addr, &addr_len);
+        if (bytes_received > 0)
+        {
+            // if seq not equal, continue to receive forget it
+            struct ip *ip_reply = (struct ip *)recv_buf;
+            struct icmphdr *icmp_reply = (struct icmphdr *)(recv_buf + (ip_reply->ip_hl * 4));
+            if (ntohs(icmp_reply->un.echo.sequence) != sequence)
+            {
+                continue; // Ignore packets with different sequence number
+            }
+            
+            break; // Break if we successfully received a reply
+        }
+        usleep(100); // Sleep for 100 us before retrying
+    }
 
     if (bytes_received <= 0)
     {
+        // printf("got %zd\n", bytes_received);
+        // printf("errno: %d, error: %s\n", errno, strerror(errno));
         printf("Request timeout for icmp_seq=%d\n", sequence);
         return false;
     }
@@ -123,12 +141,11 @@ bool PingClient::receive_ping_reply(int sequence, double &delay_ms)
     }
 
     // Calculate delay
-    delay_ms = calculate_time_diff(send_time, end_time);
+    double delay_ms = calculate_time_diff(send_time, end_time);
 
     // debug:
     // printf("send_time: %ld.%06ld\n", send_time.tv_sec, send_time.tv_usec);
     // printf("end_time: %ld.%06ld\n", end_time.tv_sec, end_time.tv_usec);
-
 
     // Verify if it's ICMP Echo Reply
     // printf("%d\n", ntohs(icmp_reply->un.echo.sequence));
@@ -151,6 +168,19 @@ bool PingClient::receive_ping_reply(int sequence, double &delay_ms)
     // If not an Echo Reply, print the type
     printf("Received ICMP packet with type %d (not Echo Reply)\n", icmp_reply->type);
     return false;
+}
+
+// Drop the ping reply
+// Because the packet received may not be catched by the receive_ping_reply(timeout situation)
+// only drop one!!!!
+bool PingClient::drop_ping_reply()
+{
+    char recv_buf[1024];
+    struct sockaddr_in recv_addr;
+    socklen_t addr_len = sizeof(recv_addr);
+
+    recvfrom(socket_fd_, recv_buf, sizeof(recv_buf), MSG_DONTWAIT,(struct sockaddr *)&recv_addr, &addr_len);
+    return true;
 }
 
 // Initialize the PingClient
@@ -190,21 +220,17 @@ void PingClient::run()
     // If not running(Ctrl+C), stop sending packets
     for (int i = 1; i <= count_ && running_; i++)
     {
-        // Record send time
-        struct timeval send_time;
-        gettimeofday(&send_time, NULL);
 
         // send and receive ping packet
         if (send_ping_packet(i))
         {
-            double delay_ms;
-            // usleep(100); // Wait for 1 microsecond
-            receive_ping_reply(i, delay_ms);
+            receive_ping_reply(i);
         }
 
         // Wait for interval time
         if (i < count_ && running_)
         {
+            // make sure the last ping reply is dropped
             sleep(interval_);
         }
     }
@@ -214,13 +240,20 @@ void PingClient::run()
     // No need to stop the PingClient, the stop method is just for the print_statisticsand it's already called
 }
 
-bool PingClient::parse_arguments(int argc, char *argv[], std::string &target_ip, int &count, int &interval)
+bool PingClient::parse_arguments(int argc, char *argv[], std::string &target_ip, int &count, int &interval, double &timeout_ms)
 {
     // Default values
     count = 4;    // Default to 4 packets
     interval = 1; // Default to 1 second interval
+    timeout_ms = 1000.0; // Default to 1000 ms timeout
 
     if (argc < 2)
+    {
+        print_usage(argv[0]);
+        return false;
+    }
+
+    if (argc > 1 && strcmp(argv[1], "-h") == 0)
     {
         print_usage(argv[0]);
         return false;
@@ -237,6 +270,10 @@ bool PingClient::parse_arguments(int argc, char *argv[], std::string &target_ip,
         else if (strcmp(argv[i], "-i") == 0 && i + 1 < argc)
         {
             interval = atoi(argv[++i]);
+        }
+        else if (strcmp(argv[i], "-t") == 0 && i + 1 < argc)
+        {
+            timeout_ms = atof(argv[++i]);
         }
         else
         {
@@ -256,6 +293,7 @@ void PingClient::print_usage(const char *prog_name)
     printf("Options:\n");
     printf("  -c COUNT     Stop after sending COUNT packets (default: 4)\n");
     printf("  -i INTERVAL  Wait INTERVAL seconds between sending packets (default: 1)\n");
+    printf("  -t TIMEOUT   Set timeout for receiving reply in milliseconds (default: 1000)\n");
     printf("  -h           Display this help message\n");
     printf("\nDESTINATION must be an IP address.\n");
     printf("\nExample:\n");
